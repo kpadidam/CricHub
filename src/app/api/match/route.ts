@@ -80,8 +80,8 @@ export async function POST(req: Request): Promise<Response> {
     }
     if (rules.powerplayOvers !== undefined) {
       const v = rules.powerplayOvers;
-      if (typeof v !== 'number' || !Number.isFinite(v) || v < 1 || v > oversLimit)
-        return bad(`rules.powerplayOvers must be in [1, ${oversLimit}]`);
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > oversLimit)
+        return bad(`rules.powerplayOvers must be in [0, ${oversLimit}]`);
       finalRules.powerplayOvers = v;
     }
   }

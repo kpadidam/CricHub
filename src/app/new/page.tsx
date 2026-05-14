@@ -64,7 +64,7 @@ export default function NewMatchPage() {
   const rulesValid =
     overs >= 1 && overs <= 50 &&
     maxOversPerBowler >= 1 && maxOversPerBowler <= overs &&
-    powerplayOvers >= 1 && powerplayOvers <= overs;
+    powerplayOvers >= 0 && powerplayOvers <= overs;
   const openersValid =
     striker.length > 0 &&
     nonStriker.length > 0 &&
@@ -450,12 +450,14 @@ export default function NewMatchPage() {
                 }
               />
             </Field>
-            <Field label="Powerplay overs">
+            <Field label="Powerplay overs (0 = none)">
               <NumberInput
                 value={powerplayOvers}
                 onChange={(v) =>
-                  setPowerplayOvers(Math.max(1, Math.min(overs, v)))
+                  setPowerplayOvers(Math.max(0, Math.min(overs, v)))
                 }
+                min={0}
+                max={overs}
               />
             </Field>
           </>
