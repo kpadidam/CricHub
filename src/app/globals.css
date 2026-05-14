@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Brand */
+  --primary: #1B5E20;
+  --primary-light: #2E7D32;
+  --primary-dark: #0D3D13;
+  --secondary: #0288D1;
+  --secondary-light: #03A9F4;
+
+  /* Neutral */
+  --background: #F8F9FA;
+  --surface: #FFFFFF;
+  --surface-elevated: #F0F2F5;
+  --border: #E0E0E0;
+  --border-light: #F0F0F0;
+
+  /* Ball colors */
+  --dot-gray: #9E9E9E;
+  --dot-gray-light: #F5F5F5;
+  --run-blue: #1976D2;
+  --run-blue-light: #E3F2FD;
+  --boundary-four: #00897B;
+  --boundary-four-light: #E0F2F1;
+  --six-purple: #7B1FA2;
+  --six-purple-light: #F3E5F5;
+  --wicket-red: #D32F2F;
+  --wicket-red-light: #FFEBEE;
+  --extras-orange: #F57C00;
+  --extras-orange-light: #FFF3E0;
+  --live-red: #D32F2F;
+
+  /* Text */
+  --text-primary: #1A1A1A;
+  --text-secondary: #5F6368;
+  --text-muted: #9AA0A6;
+  --text-white: #FFFFFF;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 100px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+
+  /* Backwards-compat aliases for un-migrated components */
+  --bg: var(--background);
+  --bg-2: var(--surface);
+  --panel: var(--surface);
+  --panel-2: var(--surface-elevated);
+  --line: var(--border);
+  --ink: var(--text-primary);
+  --ink-dim: var(--text-secondary);
+  --ink-mute: var(--text-muted);
+  --ball: var(--primary);
+  --signal: var(--primary);
+  --boundary: var(--boundary-four);
+  --six: var(--six-purple);
+  --wicket: var(--wicket-red);
+  --dot: var(--dot-gray);
+  --accent-green: var(--primary);
+  --accent-red: var(--wicket-red);
+  --accent-amber: var(--extras-orange);
+  --muted: var(--text-secondary);
+  --card: var(--surface);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-foreground: var(--text-primary);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-card: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--text-secondary);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-accent-green: var(--primary);
+  --color-accent-red: var(--wicket-red);
+  --color-accent-amber: var(--extras-orange);
+  --color-boundary: var(--boundary-four);
+  --color-six: var(--six-purple);
+  --color-wicket: var(--wicket-red);
+  --color-live: var(--live-red);
+  --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  background: var(--background);
+  color: var(--text-primary);
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+input, select, textarea {
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+@layer utilities {
+  .font-primary { font-family: var(--font-primary, var(--font-inter), 'Inter', sans-serif); }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .text-primary { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-muted { color: var(--text-muted); }
+  .bg-surface { background: var(--surface); }
+  .bg-surface-elevated { background: var(--surface-elevated); }
+  .bg-bg { background: var(--background); }
+  .border-default { border-color: var(--border); }
+}
+
+@keyframes flash-in    { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes flash-out   { to { opacity: 0; transform: translateY(-20%); } }
+@keyframes pulse-dot   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes pop         { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes fade-up     { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn      { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.fade-in    { animation: fadeIn 180ms ease-out; }
+.fade-up    { animation: fade-up 240ms ease-out both; }
+.pop        { animation: pop 260ms cubic-bezier(.2,.9,.3,1.2) both; }
+.pulse-dot  { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+.flash-banner {
+  animation: flash-in 220ms cubic-bezier(.2,.8,.3,1.2) both,
+             flash-out 340ms ease-in 800ms forwards;
 }
