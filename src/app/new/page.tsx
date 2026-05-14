@@ -688,21 +688,81 @@ function TextInput({
 function NumberInput({
   value,
   onChange,
+  min = 1,
+  max = 50,
 }: {
   value: number;
   onChange: (v: number) => void;
+  min?: number;
+  max?: number;
 }) {
+  const clamp = (v: number) => Math.max(min, Math.min(max, v));
   return (
-    <input
-      type="number"
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value) || 0)}
-      style={{ ...inputStyle, fontVariantNumeric: "tabular-nums" }}
-      onFocus={(e) => (e.currentTarget.style.borderColor = "var(--primary)")}
-      onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-    />
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        padding: 4,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value - 1))}
+        aria-label="Decrease"
+        style={stepBtnStyle}
+      >
+        −
+      </button>
+      <input
+        type="number"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={value}
+        onChange={(e) => onChange(clamp(Number(e.target.value) || 0))}
+        style={{
+          flex: 1,
+          textAlign: "center",
+          fontSize: 18,
+          fontWeight: 600,
+          color: "var(--text-primary)",
+          background: "transparent",
+          border: "none",
+          outline: "none",
+          fontVariantNumeric: "tabular-nums",
+          minWidth: 0,
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value + 1))}
+        aria-label="Increase"
+        style={stepBtnStyle}
+      >
+        +
+      </button>
+    </div>
   );
 }
+
+const stepBtnStyle: React.CSSProperties = {
+  width: 44,
+  height: 44,
+  borderRadius: 8,
+  backgroundColor: "var(--surface-elevated)",
+  color: "var(--text-primary)",
+  border: "1px solid var(--border)",
+  fontSize: 22,
+  fontWeight: 600,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  flexShrink: 0,
+};
 
 function NextBtn({
   disabled,
