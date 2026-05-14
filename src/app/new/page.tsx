@@ -398,12 +398,30 @@ export default function NewMatchPage() {
         {step === "rules" && (
           <>
             <Hero>Match Rules</Hero>
-            <Field label="Overs per side">
-              <NumberInput
-                value={overs}
-                onChange={(v) => setOvers(Math.max(1, Math.min(50, v)))}
-              />
-            </Field>
+            <div
+              style={{
+                backgroundColor: "var(--surface-elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                Format
+              </span>
+              <span
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                }}
+              >
+                {matchFormat === "custom" ? "Custom" : matchFormat} · {overs} overs
+              </span>
+            </div>
             <Field label="Wide runs">
               <SegmentedControl
                 value={String(wideRuns) as "1" | "2"}
