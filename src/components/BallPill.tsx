@@ -1,9 +1,9 @@
 import type { Ball } from "@/lib/types";
+import { displayLabel } from "@/lib/display";
 
 type Tone = {
   bg: string;
   fg: string;
-  content: string;
   fontSize: string;
 };
 
@@ -12,39 +12,13 @@ function tone(b: Ball): Tone {
     return {
       bg: "var(--wicket-red-light)",
       fg: "var(--wicket-red)",
-      content: "W",
-      fontSize: "12px",
-    };
-  }
-  if (b.extra === "wd") {
-    return {
-      bg: "var(--extras-orange-light)",
-      fg: "var(--extras-orange)",
-      content: b.runs > 1 ? `${b.runs - 1}WD` : "WD",
       fontSize: "9px",
     };
   }
-  if (b.extra === "nb") {
+  if (b.extra) {
     return {
       bg: "var(--extras-orange-light)",
       fg: "var(--extras-orange)",
-      content: b.runs > 1 ? `${b.runs - 1}NB` : "NB",
-      fontSize: "9px",
-    };
-  }
-  if (b.extra === "b") {
-    return {
-      bg: "var(--extras-orange-light)",
-      fg: "var(--extras-orange)",
-      content: `${b.runs}B`,
-      fontSize: "9px",
-    };
-  }
-  if (b.extra === "lb") {
-    return {
-      bg: "var(--extras-orange-light)",
-      fg: "var(--extras-orange)",
-      content: `${b.runs}LB`,
       fontSize: "9px",
     };
   }
@@ -52,7 +26,6 @@ function tone(b: Ball): Tone {
     return {
       bg: "var(--six-purple-light)",
       fg: "var(--six-purple)",
-      content: "6",
       fontSize: "12px",
     };
   }
@@ -60,7 +33,6 @@ function tone(b: Ball): Tone {
     return {
       bg: "var(--boundary-four-light)",
       fg: "var(--boundary-four)",
-      content: "4",
       fontSize: "12px",
     };
   }
@@ -68,20 +40,21 @@ function tone(b: Ball): Tone {
     return {
       bg: "var(--dot-gray-light)",
       fg: "var(--dot-gray)",
-      content: "0",
       fontSize: "12px",
     };
   }
   return {
     bg: "var(--run-blue-light)",
     fg: "var(--run-blue)",
-    content: String(b.runs),
     fontSize: "12px",
   };
 }
 
 export function BallPill({ ball }: { ball: Ball }) {
   const t = tone(ball);
+  const content = displayLabel(ball);
+  // Shrink font for longer composite labels (e.g. "1WD+W").
+  const fontSize = content.length >= 4 ? "8px" : t.fontSize;
   return (
     <div
       className="shrink-0 rounded-full flex items-center justify-center font-bold tabular"
@@ -90,11 +63,11 @@ export function BallPill({ ball }: { ball: Ball }) {
         height: 28,
         background: t.bg,
         color: t.fg,
-        fontSize: t.fontSize,
+        fontSize,
         fontWeight: 700,
       }}
     >
-      {t.content}
+      {content}
     </div>
   );
 }

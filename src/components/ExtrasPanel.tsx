@@ -28,8 +28,8 @@ export function ExtrasPanel({
           Cancel
         </button>
       </div>
-      <div className="grid grid-cols-5 gap-2">
-        {[0, 1, 2, 3, 4].map((r) => (
+      <div className="grid grid-cols-7 gap-2">
+        {[0, 1, 2, 3, 4, 5, 6].map((r) => (
           <ActionButton
             key={r}
             variant="extra"

@@ -11,7 +11,11 @@ export type WicketType =
   | 'stumped'
   | 'hit-wicket'
   | 'retired-hurt'
-  | 'retired-out';
+  | 'retired-out'
+  | 'obstructing-field'
+  | 'hit-ball-twice';
+
+export type BatterStatus = 'active' | 'out' | 'retired-hurt' | 'retired-out';
 
 export type Ball = {
   runs: number;
@@ -23,6 +27,7 @@ export type Ball = {
   runOutEnd?: 'striker' | 'non-striker';
   commentary?: string;
   countsAsBall: boolean;
+  batRuns?: number;
 };
 
 export type FallOfWicket = {
@@ -41,7 +46,10 @@ export type BatterStat = {
   ballsFaced: number;
   fours: number;
   sixes: number;
+  // `out` is kept for backwards-compat with existing UI reads. It is set to
+  // true whenever `status` is `'out'` or `'retired-out'`.
   out: boolean;
+  status: BatterStatus;
   howOut?: string;
 };
 
@@ -66,9 +74,16 @@ export type Innings = {
   target?: number;
   batters: BatterStat[];
   bowlers: BowlerStat[];
+  // Authoritative replacement for the old boolean `awaitingNewBatter`.
+  // Set to whichever slot is empty after a wicket / retirement; cleared
+  // when that slot is filled. Frontend should PATCH /players for that slot.
+  awaitingNewBatterFor?: 'striker' | 'non-striker';
+  // Backwards-compat alias. Mirrors `!!awaitingNewBatterFor`. Read-only —
+  // never set this directly; always set `awaitingNewBatterFor`.
   awaitingNewBatter?: boolean;
   awaitingNewBowler?: boolean;
   fallOfWickets: FallOfWicket[];
+  freeHitActive?: boolean;
 };
 
 export type Toss = {
@@ -113,4 +128,8 @@ export type BallInput = {
   dismissedPlayer?: string;
   fielder?: string;
   runOutEnd?: 'striker' | 'non-striker';
+  // On `extra: 'nb'`, bat-off runs credited to the batter. When undefined,
+  // defaults to `runs` (backwards-compat fallback). When defined, `runs`
+  // represents byes/leg-byes on the no-ball (added to extras, not batter).
+  batRuns?: number;
 };

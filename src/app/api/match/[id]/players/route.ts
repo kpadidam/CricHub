@@ -28,6 +28,34 @@ export async function PATCH(
   if (bowler !== undefined && (typeof bowler !== 'string' || !bowler.trim()))
     return Response.json({ error: 'bowler must be non-empty string' }, { status: 400 });
 
+  // If an awaiting batter slot is set on the current innings, be permissive
+  // but prefer matching the awaited slot. (Both slots accepted; mismatch is
+  // logged on the server but still applied.)
+  const currentInn = match.innings[match.innings.length - 1];
+  const awaiting = currentInn?.awaitingNewBatterFor;
+  if (awaiting) {
+    const providedStriker = striker !== undefined;
+    const providedNonStriker = nonStriker !== undefined;
+    if (!providedStriker && !providedNonStriker && bowler === undefined) {
+      return Response.json(
+        { error: `awaiting new batter for ${awaiting}; provide striker or nonStriker` },
+        { status: 400 }
+      );
+    }
+    // Permissive: if the wrong slot was provided but no other slot, surface a
+    // 400 hint so the UI can correct. Both-provided is allowed.
+    if (
+      ((awaiting === 'striker' && providedNonStriker && !providedStriker) ||
+        (awaiting === 'non-striker' && providedStriker && !providedNonStriker)) &&
+      bowler === undefined
+    ) {
+      return Response.json(
+        { error: `awaiting new batter for ${awaiting}; provide that slot` },
+        { status: 400 }
+      );
+    }
+  }
+
   try {
     const updated = setPlayers(match, { striker, nonStriker, bowler });
     await store.set(id, updated);

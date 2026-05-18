@@ -13,6 +13,8 @@ const WICKET_TYPES: WicketType[] = [
   'hit-wicket',
   'retired-hurt',
   'retired-out',
+  'obstructing-field',
+  'hit-ball-twice',
 ];
 
 export async function POST(
@@ -30,7 +32,7 @@ export async function POST(
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { runs, extra, wicket, wicketType, dismissedPlayer, fielder, runOutEnd } =
+  const { runs, extra, wicket, wicketType, dismissedPlayer, fielder, runOutEnd, batRuns } =
     body ?? ({} as BallInput);
   if (typeof runs !== 'number' || runs < 0 || !Number.isInteger(runs))
     return Response.json({ error: 'runs must be a non-negative integer' }, { status: 400 });
@@ -48,6 +50,13 @@ export async function POST(
 
   if (runOutEnd !== undefined && runOutEnd !== 'striker' && runOutEnd !== 'non-striker')
     return Response.json({ error: 'runOutEnd must be striker|non-striker' }, { status: 400 });
+
+  if (batRuns !== undefined) {
+    if (typeof batRuns !== 'number' || batRuns < 0 || !Number.isInteger(batRuns))
+      return Response.json({ error: 'batRuns must be a non-negative integer' }, { status: 400 });
+    if (extra !== 'nb')
+      return Response.json({ error: 'batRuns only valid with extra=nb' }, { status: 400 });
+  }
 
   // Roster lookups for player validation.
   const currentInn = match.innings[match.innings.length - 1]!;
@@ -77,10 +86,20 @@ export async function POST(
       dismissedPlayer,
       fielder,
       runOutEnd,
+      batRuns,
     });
     await store.set(id, updated);
     return Response.json(updated);
   } catch (e) {
-    return Response.json({ error: (e as Error).message }, { status: 500 });
+    const msg = (e as Error).message ?? 'Engine error';
+    // Engine validation errors (bad dismissal for delivery, etc.) → 400.
+    const isValidation =
+      /^Invalid wicketType/.test(msg) ||
+      /not allowed on /.test(msg) ||
+      /Awaiting new /.test(msg) ||
+      /Innings break/.test(msg) ||
+      /Match is finished/.test(msg) ||
+      /Invalid dismissal/.test(msg);
+    return Response.json({ error: msg }, { status: isValidation ? 400 : 500 });
   }
 }

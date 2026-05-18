@@ -11,7 +11,8 @@ import { PlayerPicker } from "@/components/PlayerPicker";
 import { ExtrasPanel } from "@/components/ExtrasPanel";
 import { WicketModal } from "@/components/WicketModal";
 import { ScoreHeader } from "@/components/ScoreHeader";
-import type { BallInput, Innings, Match } from "@/lib/types";
+import type { BallInput, Extra, Innings, Match } from "@/lib/types";
+import { ballTeamDelta } from "@/lib/display";
 
 function currentInnings(m: Match): Innings {
   return (m.innings[1] ?? m.innings[0]) as Innings;
@@ -57,7 +58,7 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [armedExtra, setArmedExtra] = useState<null | "wd" | "nb">(null);
+  const [armedExtra, setArmedExtra] = useState<null | Extra>(null);
   const [showWicketModal, setShowWicketModal] = useState(false);
 
   const load = useCallback(async () => {
@@ -334,8 +335,15 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
     return <InningsBreak match={match} onContinue={(m) => setMatch(m)} id={id} />;
   }
 
-  const awaitingBatter = !!inn.awaitingNewBatter;
+  const innExt = inn as Innings & {
+    awaitingNewBatterFor?: "striker" | "non-striker";
+    freeHitActive?: boolean;
+  };
+  const awaitingBatterSlot: "striker" | "non-striker" | null =
+    innExt.awaitingNewBatterFor ?? (inn.awaitingNewBatter ? "striker" : null);
+  const awaitingBatter = awaitingBatterSlot !== null;
   const awaitingBowler = !!inn.awaitingNewBowler;
+  const freeHitActive = !!innExt.freeHitActive;
   const blockActions = awaitingBatter || awaitingBowler;
 
   const bowlersList = inn.bowlers ?? [];
@@ -350,8 +358,13 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
   (inn.batters ?? []).forEach((b) => {
     if (b.out) outOrInNames.add(b.name);
   });
-  if (inn.nonStriker) outOrInNames.add(inn.nonStriker);
-  if (awaitingBatter && inn.striker) outOrInNames.add(inn.striker);
+  // Exclude the surviving batter (in the other slot) from the picker.
+  if (awaitingBatterSlot === "striker" && inn.nonStriker) outOrInNames.add(inn.nonStriker);
+  if (awaitingBatterSlot === "non-striker" && inn.striker) outOrInNames.add(inn.striker);
+  if (!awaitingBatter) {
+    if (inn.striker) outOrInNames.add(inn.striker);
+    if (inn.nonStriker) outOrInNames.add(inn.nonStriker);
+  }
 
   const striker = inn.striker;
   const nonStriker = inn.nonStriker;
@@ -359,7 +372,7 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
   const nonStrikerStat = (inn.batters ?? []).find((b) => b.name === nonStriker && !b.out);
   const bowlerStat = (inn.bowlers ?? []).find((b) => b.name === inn.bowler);
 
-  const overRuns = lastBalls.reduce((s, b) => s + b.runs, 0);
+  const overRuns = lastBalls.reduce((s, b) => s + ballTeamDelta(b, match.rules), 0);
 
   return (
     <main
@@ -378,15 +391,16 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
         <div className="flex flex-col gap-2">
           <BatterCard
             label="Striker"
-            name={awaitingBatter ? undefined : striker}
+            name={awaitingBatterSlot === "striker" ? undefined : striker}
             stats={strikerStat}
             isStriker
-            pending={awaitingBatter}
+            pending={awaitingBatterSlot === "striker"}
           />
           <BatterCard
             label="Non-striker"
-            name={nonStriker}
+            name={awaitingBatterSlot === "non-striker" ? undefined : nonStriker}
             stats={nonStrikerStat}
+            pending={awaitingBatterSlot === "non-striker"}
           />
         </div>
 
@@ -429,11 +443,40 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
           borderTop: "1px solid var(--border)",
         }}
       >
+        {freeHitActive && (
+          <div className="mb-2 flex justify-center">
+            <span
+              className="px-3 py-1 rounded-full text-xs font-bold tracking-wider"
+              style={{
+                background: "var(--extras-orange-light)",
+                color: "var(--extras-orange)",
+                border: "1px solid var(--extras-orange)",
+              }}
+            >
+              FREE HIT
+            </span>
+          </div>
+        )}
         {armedExtra && (
           <div className="mb-2">
             <ExtrasPanel
-              label={armedExtra === "wd" ? "Wide" : "No-ball"}
-              onSend={(runs) => postBall({ runs, extra: armedExtra })}
+              label={
+                armedExtra === "wd"
+                  ? "Wide"
+                  : armedExtra === "nb"
+                  ? "No-ball"
+                  : armedExtra === "b"
+                  ? "Bye"
+                  : "Leg-bye"
+              }
+              onSend={(runs) => {
+                if (armedExtra === "nb") {
+                  // Off-bat runs on a no-ball go into batRuns.
+                  postBall({ runs: 0, extra: "nb", batRuns: runs } as BallInput & { batRuns?: number });
+                } else {
+                  postBall({ runs, extra: armedExtra });
+                }
+              }}
               onCancel={() => setArmedExtra(null)}
             />
           </div>
@@ -472,26 +515,6 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
             6
           </ActionButton>
           <ActionButton
-            variant="extra"
-            disabled={blockActions}
-            onClick={() => setArmedExtra(armedExtra === "wd" ? null : "wd")}
-            className={`h-14 ${armedExtra === "wd" ? "ring-2" : ""}`}
-            style={{ fontSize: 15, fontWeight: 600 }}
-          >
-            Wide
-          </ActionButton>
-        </div>
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <ActionButton
-            variant="extra"
-            disabled={blockActions}
-            onClick={() => setArmedExtra(armedExtra === "nb" ? null : "nb")}
-            className={`h-14 ${armedExtra === "nb" ? "ring-2" : ""}`}
-            style={{ fontSize: 15, fontWeight: 600 }}
-          >
-            No Ball
-          </ActionButton>
-          <ActionButton
             variant="wicket"
             disabled={blockActions}
             onClick={() => setShowWicketModal(true)}
@@ -501,10 +524,45 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
             Wicket
           </ActionButton>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <GhostBtn disabled={!inn.awaitingNewBowler} onClick={() => {}}>
-            End Over
-          </GhostBtn>
+        <div className="grid grid-cols-4 gap-2 mb-2">
+          <ActionButton
+            variant="extra"
+            disabled={blockActions}
+            onClick={() => setArmedExtra(armedExtra === "wd" ? null : "wd")}
+            className={`h-12 ${armedExtra === "wd" ? "ring-2" : ""}`}
+            style={{ fontSize: 14, fontWeight: 600 }}
+          >
+            Wd
+          </ActionButton>
+          <ActionButton
+            variant="extra"
+            disabled={blockActions}
+            onClick={() => setArmedExtra(armedExtra === "nb" ? null : "nb")}
+            className={`h-12 ${armedExtra === "nb" ? "ring-2" : ""}`}
+            style={{ fontSize: 14, fontWeight: 600 }}
+          >
+            Nb
+          </ActionButton>
+          <ActionButton
+            variant="extra"
+            disabled={blockActions}
+            onClick={() => setArmedExtra(armedExtra === "b" ? null : "b")}
+            className={`h-12 ${armedExtra === "b" ? "ring-2" : ""}`}
+            style={{ fontSize: 14, fontWeight: 600 }}
+          >
+            B
+          </ActionButton>
+          <ActionButton
+            variant="extra"
+            disabled={blockActions}
+            onClick={() => setArmedExtra(armedExtra === "lb" ? null : "lb")}
+            className={`h-12 ${armedExtra === "lb" ? "ring-2" : ""}`}
+            style={{ fontSize: 14, fontWeight: 600 }}
+          >
+            Lb
+          </ActionButton>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
           <GhostBtn
             disabled
             title="Coming soon"
@@ -525,6 +583,10 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
         <WicketModal
           bowlingRoster={bowlRoster}
           bowlerName={inn.bowler}
+          armedExtra={armedExtra ?? undefined}
+          freeHitActive={freeHitActive}
+          strikerName={inn.striker}
+          nonStrikerName={inn.nonStriker}
           onCancel={() => setShowWicketModal(false)}
           onSubmit={(input) => postBall(input)}
         />
@@ -535,15 +597,20 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
         const dismissedLine = recentOut
           ? `Dismissed: ${recentOut.name}${recentOut.howOut ? ` (${recentOut.howOut})` : ""}`
           : null;
+        const slot = awaitingBatterSlot ?? "striker";
         return (
           <PlayerPromptModal
-            title="Who's the new batter?"
+            title={`New batter (replacing dismissed ${slot})`}
             subtitle={`${battingTeamName(match, inn)}${dismissedLine ? ` — ${dismissedLine}` : " — pick from roster"}`}
           >
             <PlayerPicker
               players={batRoster}
               excluded={Array.from(outOrInNames)}
-              onPick={(name) => patchPlayers({ striker: name })}
+              onPick={(name) =>
+                patchPlayers(
+                  slot === "striker" ? { striker: name } : { nonStriker: name }
+                )
+              }
               emptyMessage="No batters left"
             />
           </PlayerPromptModal>

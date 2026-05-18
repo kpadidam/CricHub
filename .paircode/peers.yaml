@@ -1,0 +1,9 @@
+peers:
+- id: peer-a-codex
+  cli: codex
+  priority: high
+  notes: Second opinion, good for silent-agreement hunts
+- id: peer-b-gemini
+  cli: gemini
+  priority: low
+  notes: "Free tier \u2014 use for quick opinions, not full forks"

@@ -9,6 +9,7 @@ import { Tabs, type TabDef } from "@/components/Tabs";
 import { ScoreHeader } from "@/components/ScoreHeader";
 import { BottomNav } from "@/components/BottomNav";
 import type { Ball, Innings, Match } from "@/lib/types";
+import { ballTeamDelta } from "@/lib/display";
 
 type TabId = "live" | "scorecard" | "commentary" | "info";
 
@@ -46,7 +47,7 @@ type OverGroup = {
   complete: boolean;
 };
 
-function groupByOver(balls: Ball[]): OverGroup[] {
+function groupByOver(balls: Ball[], rules?: Match["rules"]): OverGroup[] {
   const groups: OverGroup[] = [];
   let curr: OverGroup | null = null;
   for (const b of balls) {
@@ -67,7 +68,14 @@ function groupByOver(balls: Ball[]): OverGroup[] {
   }
   if (curr) groups.push(curr);
   for (const g of groups) {
-    g.runs = g.balls.reduce((s, x) => s + x.ball.runs, 0);
+    g.runs = g.balls.reduce(
+      (s, x) =>
+        s +
+        (rules
+          ? ballTeamDelta(x.ball, rules)
+          : x.ball.runs),
+      0
+    );
   }
   return groups;
 }
@@ -201,10 +209,10 @@ function Section({
 function LiveTab({ match }: { match: Match }) {
   const inn = (match.innings[1] ?? match.innings[0]) as Innings;
   const balls = lastOver(inn.balls);
-  const overRuns = balls.reduce((s, b) => s + b.runs, 0);
+  const overRuns = balls.reduce((s, b) => s + ballTeamDelta(b, match.rules), 0);
   const recentBalls = [...inn.balls].slice(-10).reverse();
 
-  const groups = groupByOver(inn.balls);
+  const groups = groupByOver(inn.balls, match.rules);
 
   return (
     <div className="flex flex-col gap-5">
@@ -630,7 +638,7 @@ type CommentaryFilter = "all" | "boundaries" | "wickets" | "extras";
 function CommentaryTab({ match }: { match: Match }) {
   const [filter, setFilter] = useState<CommentaryFilter>("all");
   const inn = (match.innings[1] ?? match.innings[0]) as Innings;
-  const groups = useMemo(() => groupByOver(inn.balls), [inn.balls]);
+  const groups = useMemo(() => groupByOver(inn.balls, match.rules), [inn.balls, match.rules]);
 
   const matches = (b: Ball) => {
     if (filter === "all") return true;
