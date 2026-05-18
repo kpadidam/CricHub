@@ -96,8 +96,9 @@ export type MatchStatus = 'live' | 'innings-break' | 'finished';
 export type MatchFormat = 'T5' | 'T10' | 'T20' | 'ODI' | 'custom';
 
 export type MatchRules = {
-  wideRuns: 1 | 2;
+  wideRuns: 0 | 1 | 2;
   noBallRuns: 1 | 2;
+  noBallsEnabled: boolean;
   maxOversPerBowler: number;
   powerplayOvers: number;
 };

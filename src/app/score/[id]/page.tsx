@@ -524,7 +524,7 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
             Wicket
           </ActionButton>
         </div>
-        <div className="grid grid-cols-4 gap-2 mb-2">
+        <div className={`grid ${match.rules.noBallsEnabled === false ? "grid-cols-3" : "grid-cols-4"} gap-2 mb-2`}>
           <ActionButton
             variant="extra"
             disabled={blockActions}
@@ -534,15 +534,17 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
           >
             Wd
           </ActionButton>
-          <ActionButton
-            variant="extra"
-            disabled={blockActions}
-            onClick={() => setArmedExtra(armedExtra === "nb" ? null : "nb")}
-            className={`h-12 ${armedExtra === "nb" ? "ring-2" : ""}`}
-            style={{ fontSize: 14, fontWeight: 600 }}
-          >
-            Nb
-          </ActionButton>
+          {match.rules.noBallsEnabled !== false && (
+            <ActionButton
+              variant="extra"
+              disabled={blockActions}
+              onClick={() => setArmedExtra(armedExtra === "nb" ? null : "nb")}
+              className={`h-12 ${armedExtra === "nb" ? "ring-2" : ""}`}
+              style={{ fontSize: 14, fontWeight: 600 }}
+            >
+              Nb
+            </ActionButton>
+          )}
           <ActionButton
             variant="extra"
             disabled={blockActions}

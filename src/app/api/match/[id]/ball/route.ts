@@ -38,6 +38,8 @@ export async function POST(
     return Response.json({ error: 'runs must be a non-negative integer' }, { status: 400 });
   if (extra !== undefined && !EXTRAS.includes(extra))
     return Response.json({ error: 'extra must be wd|nb|b|lb' }, { status: 400 });
+  if (extra === 'nb' && match.rules.noBallsEnabled === false)
+    return Response.json({ error: 'No-balls are disabled for this match' }, { status: 400 });
   if (wicket !== undefined && typeof wicket !== 'boolean')
     return Response.json({ error: 'wicket must be boolean' }, { status: 400 });
 

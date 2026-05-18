@@ -30,6 +30,7 @@ function defaultRules(oversLimit: number): MatchRules {
   return {
     wideRuns: 1,
     noBallRuns: 1,
+    noBallsEnabled: true,
     maxOversPerBowler: Math.max(1, Math.ceil(oversLimit / 5)),
     powerplayOvers: clamp(Math.round(oversLimit * 0.3), 1, maxHalf),
   };
@@ -64,13 +65,19 @@ export async function POST(req: Request): Promise<Response> {
   const finalRules: MatchRules = { ...base };
   if (rules) {
     if (rules.wideRuns !== undefined) {
-      if (rules.wideRuns !== 1 && rules.wideRuns !== 2) return bad('rules.wideRuns must be 1 or 2');
+      if (rules.wideRuns !== 0 && rules.wideRuns !== 1 && rules.wideRuns !== 2)
+        return bad('rules.wideRuns must be 0, 1, or 2');
       finalRules.wideRuns = rules.wideRuns;
     }
     if (rules.noBallRuns !== undefined) {
       if (rules.noBallRuns !== 1 && rules.noBallRuns !== 2)
         return bad('rules.noBallRuns must be 1 or 2');
       finalRules.noBallRuns = rules.noBallRuns;
+    }
+    if (rules.noBallsEnabled !== undefined) {
+      if (typeof rules.noBallsEnabled !== 'boolean')
+        return bad('rules.noBallsEnabled must be boolean');
+      finalRules.noBallsEnabled = rules.noBallsEnabled;
     }
     if (rules.maxOversPerBowler !== undefined) {
       const v = rules.maxOversPerBowler;

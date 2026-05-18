@@ -207,7 +207,7 @@ export function initInnings(
   };
 }
 
-type Penalties = { wideRuns: 1 | 2; noBallRuns: 1 | 2 };
+type Penalties = { wideRuns: 0 | 1 | 2; noBallRuns: 1 | 2 };
 
 const DEFAULT_PENALTIES: Penalties = { wideRuns: 1, noBallRuns: 1 };
 

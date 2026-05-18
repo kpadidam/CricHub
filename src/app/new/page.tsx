@@ -32,8 +32,9 @@ export default function NewMatchPage() {
   const [tossWinner, setTossWinner] = useState<"A" | "B">("A");
   const [elected, setElected] = useState<"bat" | "bowl">("bat");
 
-  const [wideRuns, setWideRuns] = useState<1 | 2>(1);
+  const [wideRuns, setWideRuns] = useState<0 | 1 | 2>(1);
   const [noBallRuns, setNoBallRuns] = useState<1 | 2>(1);
+  const [noBallsEnabled, setNoBallsEnabled] = useState(true);
   const [maxOversPerBowler, setMaxOversPerBowler] = useState(Math.ceil(20 / 5));
   const [powerplayOvers, setPowerplayOvers] = useState(Math.round(20 * 0.3));
 
@@ -88,7 +89,13 @@ export default function NewMatchPage() {
     if (!openersValid || submitting) return;
     setSubmitting(true);
     setError(null);
-    const rules: MatchRules = { wideRuns, noBallRuns, maxOversPerBowler, powerplayOvers };
+    const rules: MatchRules = {
+      wideRuns,
+      noBallRuns,
+      noBallsEnabled,
+      maxOversPerBowler,
+      powerplayOvers,
+    };
     try {
       const res = await fetch("/api/match", {
         method: "POST",
@@ -424,24 +431,37 @@ export default function NewMatchPage() {
             </div>
             <Field label="Wide runs">
               <SegmentedControl
-                value={String(wideRuns) as "1" | "2"}
-                onChange={(v) => setWideRuns(Number(v) as 1 | 2)}
+                value={String(wideRuns) as "0" | "1" | "2"}
+                onChange={(v) => setWideRuns(Number(v) as 0 | 1 | 2)}
                 options={[
+                  { value: "0", label: "0" },
                   { value: "1", label: "1 run" },
                   { value: "2", label: "2 runs" },
                 ]}
               />
             </Field>
-            <Field label="No-ball runs">
+            <Field label="No-balls">
               <SegmentedControl
-                value={String(noBallRuns) as "1" | "2"}
-                onChange={(v) => setNoBallRuns(Number(v) as 1 | 2)}
+                value={noBallsEnabled ? "on" : "off"}
+                onChange={(v) => setNoBallsEnabled(v === "on")}
                 options={[
-                  { value: "1", label: "1 run" },
-                  { value: "2", label: "2 runs" },
+                  { value: "on", label: "On" },
+                  { value: "off", label: "Off" },
                 ]}
               />
             </Field>
+            {noBallsEnabled && (
+              <Field label="No-ball runs">
+                <SegmentedControl
+                  value={String(noBallRuns) as "1" | "2"}
+                  onChange={(v) => setNoBallRuns(Number(v) as 1 | 2)}
+                  options={[
+                    { value: "1", label: "1 run" },
+                    { value: "2", label: "2 runs" },
+                  ]}
+                />
+              </Field>
+            )}
             <Field label="Max overs per bowler">
               <NumberInput
                 value={maxOversPerBowler}
