@@ -692,18 +692,28 @@ export function applyBall(match: Match, input: BallInput): Match {
   }
 
   // Strike rotation / awaitingNewBatterFor assignment.
+  //
+  // ICC Law 38.3 (Which batsman is out) — the dismissed batter is the one
+  // whose ground is at the end the wicket was put down. We trust the scorer's
+  // `dismissedPlayer` pick as authoritative for this.
+  //
+  // ICC Law 38.4 (Runs scored) — only completed runs stand; the run in
+  // progress when the wicket fell is not scored. The caller (UI) enters
+  // completed runs only.
+  //
+  // Strike model: `striker` is the batter facing the next ball. A completed
+  // run with an odd parity means the batters crossed, so the surviving batter
+  // ends up at the OTHER end relative to where he started.
   if (wicket) {
     if (dismissedSlot) {
       nextInn = { ...nextInn, awaitingNewBatterFor: dismissedSlot };
     } else {
       nextInn = { ...nextInn, awaitingNewBatterFor: 'striker' };
     }
-    // Even on a wicket, if runs were taken (run-out scenarios), apply the swap.
     if (delta.swapOnRuns) {
-      // Swap the surviving batter to the OTHER end (the dismissed slot stays
-      // empty, awaiting replacement).
+      // Odd completed runs → batters crossed → swap, then re-derive which
+      // slot now holds the dismissed name (that's the vacant slot).
       nextInn = swapBatters(nextInn);
-      // The vacant slot moved with the swap — recompute which slot is awaiting.
       const after = nextInn;
       if (after.striker === dismissedName) {
         nextInn = { ...nextInn, awaitingNewBatterFor: 'striker' };
@@ -727,11 +737,24 @@ export function applyBall(match: Match, input: BallInput): Match {
 
   const inningsDone = checkInningsOver(match, nextInn);
 
-  // End-of-over swap — always, regardless of wicket on the last ball.
+  // End-of-over swap — always, including when the over ended on a wicket.
+  //
+  // Cricket convention: next over is bowled from the other end, so the
+  // batter previously at the bowler's end (the non-striker) faces the new
+  // over. We model that by swapping striker ↔ non-striker.
+  //
+  // Last-ball run-out scenarios (pre-state striker=A, nonStriker=B):
+  //   | Out          | Completed runs | Strike next over            |
+  //   | striker A    | 0              | B faces; new batter NS      |
+  //   | striker A    | 1              | new batter faces; B NS      |
+  //   | non-striker B| 0              | new batter faces; A NS      |
+  //   | non-striker B| 1              | A faces; new batter NS      |
+  //   | non-striker B| 2              | new batter faces; A NS      |
+  // Logic: cross-on-odd swap (above) handles the running. Over-end swap
+  // here handles the bowling end change. Re-deriving the awaiting slot
+  // from the dismissed name's post-swap position keeps the vacant slot
+  // pointed at the right end.
   if (delta.countsAsBall && nextInn.ballsBowled % 6 === 0 && nextInn.ballsBowled > 0) {
-    // If the over ended on a wicket: swap so the surviving batter moves to
-    // strike, leaving the vacant slot at non-striker (or whichever side the
-    // dismissed player was on after the swap).
     nextInn = swapBatters(nextInn);
     if (wicket && dismissedName) {
       if (nextInn.striker === dismissedName) {
@@ -741,6 +764,25 @@ export function applyBall(match: Match, input: BallInput): Match {
       }
     }
     if (!inningsDone) nextInn = { ...nextInn, awaitingNewBowler: true };
+  }
+
+  // Defensive invariant: after a wicket, the awaiting slot must contain the
+  // dismissed batter's name (that's the vacant end). If not, our rotation
+  // logic and the dismissed-name bookkeeping have diverged.
+  if (
+    wicket &&
+    dismissedName &&
+    !inningsDone &&
+    nextInn.awaitingNewBatterFor &&
+    !isNonDelivery(wicketType)
+  ) {
+    const slot = nextInn.awaitingNewBatterFor;
+    const occupant = slot === 'striker' ? nextInn.striker : nextInn.nonStriker;
+    if (occupant !== dismissedName) {
+      throw new Error(
+        `Engine invariant: awaitingNewBatterFor=${slot} but ${slot} is '${occupant}', not the dismissed '${dismissedName}'`
+      );
+    }
   }
 
   if (inningsDone) {
