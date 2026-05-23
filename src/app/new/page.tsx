@@ -6,7 +6,7 @@ import { ChevronLeft, Plus, X, Coins } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import type { MatchFormat, MatchRules } from "@/lib/types";
 
-const STEPS = ["match", "teams", "playersA", "playersB", "toss", "rules", "openers"] as const;
+const STEPS = ["basics", "rosters", "toss", "openers"] as const;
 type Step = (typeof STEPS)[number];
 
 const FORMATS: { id: Exclude<MatchFormat, "custom">; label: string; overs: number }[] = [
@@ -18,7 +18,9 @@ const FORMATS: { id: Exclude<MatchFormat, "custom">; label: string; overs: numbe
 
 export default function NewMatchPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("match");
+  const [step, setStep] = useState<Step>("basics");
+  const [rosterTab, setRosterTab] = useState<"A" | "B">("A");
+  const [showRules, setShowRules] = useState(false);
 
   const [venue, setVenue] = useState("");
   const [matchFormat, setMatchFormat] = useState<MatchFormat>("T20");
@@ -58,11 +60,12 @@ export default function NewMatchPage() {
   const battingName = battingSide === "A" ? teamA.trim() || "Team A" : teamB.trim() || "Team B";
   const bowlingName = battingSide === "A" ? teamB.trim() || "Team B" : teamA.trim() || "Team A";
 
-  const matchValid = overs >= 1 && overs <= 50;
-  const teamsValid = teamA.trim().length > 0 && teamB.trim().length > 0;
-  const playersAValid = cleanA.length >= 2;
-  const playersBValid = cleanB.length >= 2;
-  const rulesValid =
+  const basicsValid =
+    overs >= 1 && overs <= 50 &&
+    teamA.trim().length > 0 &&
+    teamB.trim().length > 0;
+  const rostersValid = cleanA.length >= 2 && cleanB.length >= 2;
+  const tossValid =
     overs >= 1 && overs <= 50 &&
     maxOversPerBowler >= 1 && maxOversPerBowler <= overs &&
     powerplayOvers >= 0 && powerplayOvers <= overs;
@@ -135,12 +138,9 @@ export default function NewMatchPage() {
   const goNext = () => setStep(STEPS[stepIndex + 1]);
 
   const titles: Record<Step, string> = {
-    match: "Create Match",
-    teams: "Add Teams",
-    playersA: "Playing XI",
-    playersB: "Playing XI",
-    toss: "Toss",
-    rules: "Match Rules",
+    basics: "Create Match",
+    rosters: "Playing XIs",
+    toss: "Toss & Rules",
     openers: "Opening Setup",
   };
 
@@ -189,9 +189,26 @@ export default function NewMatchPage() {
       </header>
 
       <div className="flex-1 flex flex-col gap-5 px-5 pt-5 pb-6">
-        {step === "match" && (
+        {step === "basics" && (
           <>
             <Hero>Create Match</Hero>
+            <Field label="Team A">
+              <TextInput
+                value={teamA}
+                onChange={setTeamA}
+                placeholder="India"
+                maxLength={24}
+                autoFocus
+              />
+            </Field>
+            <Field label="Team B">
+              <TextInput
+                value={teamB}
+                onChange={setTeamB}
+                placeholder="Australia"
+                maxLength={24}
+              />
+            </Field>
             <Field label="Venue (optional)">
               <TextInput
                 value={venue}
@@ -297,45 +314,31 @@ export default function NewMatchPage() {
           </>
         )}
 
-        {step === "teams" && (
+        {step === "rosters" && (
           <>
-            <Hero>Add Teams</Hero>
-            <Field label="Team A">
-              <TextInput
-                value={teamA}
-                onChange={setTeamA}
-                placeholder="India"
-                maxLength={24}
-                autoFocus
+            <Hero>Playing XIs</Hero>
+            <SegmentedControl
+              value={rosterTab}
+              onChange={setRosterTab}
+              options={[
+                { value: "A", label: teamA.trim() || "Team A" },
+                { value: "B", label: teamB.trim() || "Team B" },
+              ]}
+            />
+            {rosterTab === "A" ? (
+              <PlayingXI
+                teamName={teamA.trim() || "Team A"}
+                players={playersA}
+                setPlayers={setPlayersA}
               />
-            </Field>
-            <Field label="Team B">
-              <TextInput
-                value={teamB}
-                onChange={setTeamB}
-                placeholder="Australia"
-                maxLength={24}
+            ) : (
+              <PlayingXI
+                teamName={teamB.trim() || "Team B"}
+                players={playersB}
+                setPlayers={setPlayersB}
               />
-            </Field>
+            )}
           </>
-        )}
-
-        {step === "playersA" && (
-          <PlayingXI
-            heading="Playing XI"
-            teamName={teamA.trim() || "Team A"}
-            players={playersA}
-            setPlayers={setPlayersA}
-          />
-        )}
-
-        {step === "playersB" && (
-          <PlayingXI
-            heading="Playing XI"
-            teamName={teamB.trim() || "Team B"}
-            players={playersB}
-            setPlayers={setPlayersB}
-          />
         )}
 
         {step === "toss" && (
@@ -399,37 +402,34 @@ export default function NewMatchPage() {
               </span>{" "}
               bowl
             </div>
-          </>
-        )}
 
-        {step === "rules" && (
-          <>
-            <Hero>Match Rules</Hero>
-            <div
+            <button
+              type="button"
+              onClick={() => setShowRules((v) => !v)}
+              className="w-full flex items-center justify-between active:scale-[0.99] transition-transform"
               style={{
-                backgroundColor: "var(--surface-elevated)",
+                minHeight: 44,
+                padding: "10px 14px",
+                borderRadius: "var(--radius-md)",
                 border: "1px solid var(--border)",
-                borderRadius: 12,
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                backgroundColor: "var(--surface-elevated)",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--text-secondary)",
               }}
+              aria-expanded={showRules}
             >
-              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                Format
+              <span style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Customize rules
               </span>
-              <span
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
-                }}
-              >
-                {matchFormat === "custom" ? "Custom" : matchFormat} · {overs} overs
+              <span style={{ fontSize: 14, color: "var(--text-muted)" }}>
+                {showRules ? "Hide" : `${matchFormat === "custom" ? "Custom" : matchFormat} defaults`}
               </span>
-            </div>
-            <Field label="Wide runs">
+            </button>
+
+            {showRules && (
+              <>
+                <Field label="Wide runs">
               <SegmentedControl
                 value={String(wideRuns) as "0" | "1" | "2"}
                 onChange={(v) => setWideRuns(Number(v) as 0 | 1 | 2)}
@@ -470,16 +470,18 @@ export default function NewMatchPage() {
                 }
               />
             </Field>
-            <Field label="Powerplay overs (0 = none)">
-              <NumberInput
-                value={powerplayOvers}
-                onChange={(v) =>
-                  setPowerplayOvers(Math.max(0, Math.min(overs, v)))
-                }
-                min={0}
-                max={overs}
-              />
-            </Field>
+                <Field label="Powerplay overs (0 = none)">
+                  <NumberInput
+                    value={powerplayOvers}
+                    onChange={(v) =>
+                      setPowerplayOvers(Math.max(0, Math.min(overs, v)))
+                    }
+                    min={0}
+                    max={overs}
+                  />
+                </Field>
+              </>
+            )}
           </>
         )}
 
@@ -554,38 +556,24 @@ export default function NewMatchPage() {
       </div>
 
       <div className="px-5 pb-6 pt-2">
-        {step === "match" && <NextBtn disabled={!matchValid} onClick={goNext} label="Next: Teams" />}
-        {step === "teams" && <NextBtn disabled={!teamsValid} onClick={goNext} label="Next: Team A XI" />}
-        {step === "playersA" && (
-          <NextBtn
-            disabled={!playersAValid}
-            onClick={goNext}
-            label={`Next: ${teamB.trim() || "Team B"} XI`}
-            hint={
-              playersAValid
-                ? cleanA.length < 11
-                  ? `Playing with ${cleanA.length}. You can add more or start now.`
-                  : `${cleanA.length} / 11 players`
-                : "Add at least 2 players"
-            }
-          />
+        {step === "basics" && (
+          <NextBtn disabled={!basicsValid} onClick={goNext} label="Next: Rosters" />
         )}
-        {step === "playersB" && (
+        {step === "rosters" && (
           <NextBtn
-            disabled={!playersBValid}
+            disabled={!rostersValid}
             onClick={goNext}
             label="Next: Toss"
             hint={
-              playersBValid
-                ? cleanB.length < 11
-                  ? `Playing with ${cleanB.length}. You can add more or start now.`
-                  : `${cleanB.length} / 11 players`
-                : "Add at least 2 players"
+              rostersValid
+                ? `Team A: ${cleanA.length} · Team B: ${cleanB.length}`
+                : "Add at least 2 players per side"
             }
           />
         )}
-        {step === "toss" && <NextBtn disabled={!teamsValid} onClick={goNext} label="Next: Rules" />}
-        {step === "rules" && <NextBtn disabled={!rulesValid} onClick={goNext} label="Next: Openers" />}
+        {step === "toss" && (
+          <NextBtn disabled={!tossValid} onClick={goNext} label="Next: Openers" />
+        )}
         {step === "openers" && (
           <NextBtn
             disabled={!openersValid || submitting}
@@ -829,16 +817,17 @@ function NextBtn({
 }
 
 function PlayingXI({
-  heading,
   teamName,
   players,
   setPlayers,
 }: {
-  heading: string;
   teamName: string;
   players: string[];
   setPlayers: (p: string[]) => void;
 }) {
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+
   const updateAt = (i: number, v: string) => {
     const next = [...players];
     next[i] = v;
@@ -852,11 +841,22 @@ function PlayingXI({
     if (players.length >= 11) return;
     setPlayers([...players, ""]);
   };
+  const applyPaste = () => {
+    const names = pasteText
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 11);
+    if (names.length > 0) {
+      setPlayers(names);
+      setPasteText("");
+      setPasteOpen(false);
+    }
+  };
   const filled = players.filter((s) => s.trim()).length;
 
   return (
     <div className="flex flex-col gap-3">
-      <Hero>{heading}</Hero>
       <div
         style={{
           backgroundColor: "var(--surface)",
@@ -897,6 +897,69 @@ function PlayingXI({
           {filled} / 11 players
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setPasteOpen((v) => !v)}
+        className="w-full flex items-center justify-between active:scale-[0.99] transition-transform"
+        style={{
+          minHeight: 44,
+          padding: "10px 14px",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--border)",
+          backgroundColor: "var(--surface-elevated)",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "var(--text-secondary)",
+        }}
+        aria-expanded={pasteOpen}
+      >
+        <span style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Quick add (paste names)
+        </span>
+        <span style={{ fontSize: 14, color: "var(--text-muted)" }}>
+          {pasteOpen ? "Close" : "Open"}
+        </span>
+      </button>
+      {pasteOpen && (
+        <div className="flex flex-col gap-2">
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder="Paste names, one per line or comma-separated"
+            rows={4}
+            style={{
+              ...inputStyle,
+              padding: "10px 14px",
+              fontSize: 14,
+              minHeight: 88,
+              resize: "vertical",
+            }}
+          />
+          <button
+            type="button"
+            onClick={applyPaste}
+            disabled={pasteText.trim().length === 0}
+            className="active:scale-[0.98] transition-transform"
+            style={{
+              height: 44,
+              borderRadius: "var(--radius-md)",
+              backgroundColor:
+                pasteText.trim().length === 0
+                  ? "var(--surface-elevated)"
+                  : "var(--primary)",
+              color:
+                pasteText.trim().length === 0
+                  ? "var(--text-muted)"
+                  : "var(--text-white)",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            Replace XI with pasted names
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         {players.map((p, i) => (

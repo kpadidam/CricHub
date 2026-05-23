@@ -163,7 +163,12 @@ export function WicketModal({
     onSubmit(input);
   };
 
-  const fielderRoster = bowlerName
+  // Exclude the bowler only for dismissals where he can't legally be the
+  // separate fielder (caught becomes caught-and-bowled, stumped is the keeper).
+  // For run-outs, obstructing-the-field, and hit-ball-twice, the bowler can be
+  // the fielder credited.
+  const bowlerExcluded = wicketType === "caught" || wicketType === "stumped";
+  const fielderRoster = bowlerName && bowlerExcluded
     ? bowlingRoster.filter((p) => p !== bowlerName)
     : bowlingRoster;
 

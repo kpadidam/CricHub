@@ -60,6 +60,7 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
   const [toast, setToast] = useState<string | null>(null);
   const [armedExtra, setArmedExtra] = useState<null | Extra>(null);
   const [showWicketModal, setShowWicketModal] = useState(false);
+  const [showScorecard, setShowScorecard] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -430,8 +431,34 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
         </div>
 
         <div className="mt-2">
-          <SectionLabel>Scorecard</SectionLabel>
-          <Scorecard innings={inn} />
+          <button
+            type="button"
+            onClick={() => setShowScorecard((v) => !v)}
+            className="w-full flex items-center justify-between active:scale-[0.99] transition-transform"
+            style={{
+              minHeight: 44,
+              padding: "10px 14px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--surface-elevated)",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+            }}
+            aria-expanded={showScorecard}
+          >
+            <span style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Scorecard
+            </span>
+            <span style={{ fontSize: 14, color: "var(--text-muted)" }}>
+              {showScorecard ? "Hide" : "Show"}
+            </span>
+          </button>
+          {showScorecard && (
+            <div className="mt-2">
+              <Scorecard innings={inn} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -564,21 +591,12 @@ export default function ScorePage({ params }: { params: Promise<{ id: string }> 
             Lb
           </ActionButton>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <GhostBtn
-            disabled
-            title="Coming soon"
-            onClick={() => {}}
-          >
-            Edit Ball
-          </GhostBtn>
-          <GhostBtn
-            disabled={inn.balls.length === 0}
-            onClick={undo}
-          >
-            Undo
-          </GhostBtn>
-        </div>
+        <GhostBtn
+          disabled={inn.balls.length === 0}
+          onClick={undo}
+        >
+          Undo last ball
+        </GhostBtn>
       </div>
 
       {showWicketModal && !blockActions && (
